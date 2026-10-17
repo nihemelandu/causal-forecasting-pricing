@@ -1,0 +1,13 @@
+# Synthetic dataset (regenerable from the seed)
+data/synthetic_pricing_*
+
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+
+# All datasets (too large for GitHub)
+data/*.csv
+data/*.csv.gz
+data/*.parquet
