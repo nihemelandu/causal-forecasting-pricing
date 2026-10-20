@@ -1,0 +1,19 @@
+{
+  "meta": {"data_version": "synthetic, seed 42", "run_date": null, "metric_name": null},
+  "targets": {"off_policy_improvement_pct": null, "on_policy_tolerance_pct": null},
+  "headline": {
+    "off_policy_error": null, "off_policy_baseline": null,
+    "on_policy_error": null, "on_policy_baseline": null,
+    "effect_error": null, "status": null
+  },
+  "models": [
+    {"name": "M1 DML",     "off_policy": null, "on_policy": null},
+    {"name": "M2 [name]",  "off_policy": null, "on_policy": null},
+    {"name": "M3 [name]",  "off_policy": null, "on_policy": null},
+    {"name": "M4 [name]",  "off_policy": null, "on_policy": null},
+    {"name": "M5 [name]",  "off_policy": null, "on_policy": null},
+    {"name": "M6 [name]",  "off_policy": null, "on_policy": null},
+    {"name": "M7 TWFE",    "off_policy": null, "on_policy": null}
+  ],
+  "article_example": {"weeks": [], "actual": [], "forecast": []}
+}
