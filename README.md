@@ -6,68 +6,79 @@
 
 ## The problem
 
-Retailers decide discounts weeks ahead, and they need to know what each candidate plan would do to demand, stock and revenue. A standard demand forecaster learns from past prices and past sales. That works when next quarter's pricing looks like last quarter's. It breaks down when it does not, for example with a deeper discount than any the business has run, or a plan that discounts at a time of year when it never did before.
+Retailers decide discounts weeks ahead, and they need to know what each candidate plan would do to demand, stock and revenue. A standard demand forecaster learns from past prices and past sales. That works when next quarter's pricing looks like last quarter's. It breaks down when it does not, for example with a deeper discount than any the business has run.
 
-The reason is confounding. Past prices were not set at random: the pricing policy discounted when demand looked weak and held price when demand looked strong. A model trained on that history learns the policy's habits as much as customers' real response to price. Asked about a plan outside those habits, it extrapolates from patterns that no longer apply.
+The reason is confounding. Past prices were not set at random: the pricing policy discounted when demand looked weak and held price when demand looked strong. A model trained on that history learns the policy's habits as much as customers' real response to price.
 
-**This project asks:** how can we forecast demand over a given time horizon when the article's price plan has not been used in the past, and so was not in the training data?
+**This project asks:** how can we forecast demand over a given time horizon when the article's price plan has not been used in the past?
 
 ## Why it matters
 
 - **Discount decisions are made on forecasts.** A forecast that is wrong about untried prices makes the most valuable decisions, the new ones, the least reliable.
 - **Errors are costly in both directions.** Over-forecasting leaves stock unsold at the end of the season; under-forecasting means lost sales and stockouts.
-- **"Which price is best?" is a causal question.** Answering it needs an estimate of the price effect, not only a good fit to history.
+- **"Which price is best?" is a causal question.** It needs the price effect, not only a good fit to history.
 
-## Approach
+## Result
 
-We replicate and assess the method in *Causal Forecasting for Pricing* (Schultz et al., Zalando SE, [arXiv:2312.15282](https://arxiv.org/abs/2312.15282)). It uses double machine learning (DML) to separate the effect of price from the pricing policy's habits, then forecasts demand under any chosen price plan.
+**On new price plans, the DML forecaster's error is 24% lower than the standard forecaster's (12.4 vs 16.3), and under usual pricing it is 13% lower (10.0 vs 11.5).**
 
-The paper reports, on a closed-source retailer dataset, that its DML forecaster beat a transformer forecaster on off-policy Cyber Week forecasts in 2022 and 2020 and was similar in 2019, while trailing slightly on-policy. We have not verified these results ourselves; checking whether the approach holds up is the purpose of this repo.
+Success targets, set before the runs: at least 20% better on new prices, and usual-price error no more than 10% worse. Both are met.
 
-**Plan**
-1. Replicate the paper's synthetic-data experiment, where the true price effect is known.
-2. Compare seven models under identical splits, each in its own script.
-3. Test on a real dataset.
+| Model | New prices (MAE) | Usual prices (MAE) | Price-effect error (MAE) |
+|---|---|---|---|
+| **DML forecaster** | **12.4** | **10.0** | **25.0** |
+| Standard forecaster (TF) | 16.3 | 11.5 | 45.8 |
+| sDML (no treatment model) | 20.5 | 11.0 | 89.1 |
+| DML without cross-fitting | 12.4 | 10.1 | 22.9 |
+| sDML without cross-fitting | 20.5 | 11.0 | 89.5 |
+| SARIMAX | — | — | — |
+| TWFE elasticities | — | — | — |
 
-## How success is measured
+MAE is the mean absolute error of weekly demand; lower is better. Values are averages over 4 test windows and 5 seeds.
 
-- **Primary:** forecast error on new price plans (off-policy), alongside error under usual prices (on-policy), against a standard forecaster.
-- **Also:** accuracy of the estimated price effect (possible on synthetic data only).
-- **Targets:** to be agreed before results are produced, and recorded in the dashboard.
+## How we tested it
 
-Synthetic data is used first because the true effect of price can never be observed in real data. Rankings on synthetic data do not automatically transfer to real data, which is why step 3 exists.
+The data is synthetic: 4,467 articles over 100 weeks, where the true price effect is known. Each model is trained on one of four windows (weeks 20–65, 30–75, 40–85, 50–95) and forecasts the 5 weeks that follow. It is scored two ways:
 
-## Status
+- **Usual prices:** the prices actually used in those weeks.
+- **New prices:** flat discounts of 0, 10, 20, 30, 40 and 50%, scored against the true demand at those prices.
 
-| Item | State |
-|---|---|
-| Synthetic data generator (4,467 articles, 100 weeks) | Done, validated |
-| Dashboard with placeholders | Live |
-| Train/test splits (paper's four windows, on- and off-policy) | In progress |
-| Model 1 (DML) and six comparison models | Not started |
-| Real dataset | Not started |
+Each model is trained 5 times per window with different seeds, giving 20 fits per model.
+
+## Limits of these results
+
+- The data is synthetic, built so that causal claims can be checked. Rankings may not carry over to real retail data.
+- The spread across seeds measures training noise, not uncertainty about real-world accuracy.
+- The four test windows overlap in training weeks and use the same articles, so they are not independent evidence.
+
+## Next step
+
+Validate the approach on a real retail dataset.
 
 ## Repository
 
 ```
 scripts/generate_synthetic_data.py   synthetic data generator (seeded, reproducible)
+scripts/splits.py                    train/test windows and off-policy ground truth
+scripts/model_1_dml.py ...           one script per model
+scripts/build_metrics.py             fills outputs/metrics.json for the dashboard
 scripts/dashboard.py                 Streamlit dashboard
-outputs/metrics.json                 results file the dashboard reads
-reference_papers/                    the paper
-data/                                generated data (git-ignored, except small files)
+outputs/                             results files
 ```
 
 ## Run it
 
 ```bash
 pip install -r requirements.txt
-python scripts/generate_synthetic_data.py      # writes data/synthetic_pricing_seed42.parquet
+python scripts/generate_synthetic_data.py
+python scripts/model_1_dml.py
+python scripts/build_metrics.py
 streamlit run scripts/dashboard.py
 ```
 
 ## Where we depart from the paper
 
-Everything here follows the paper unless stated. The generator's docstring lists every deviation and assumption (for example, the sign of the price term in Eq. 13, the initial-stock formula, and the Eq. 27 averaging window). The dashboard's Technical tab shows the same list.
+The generator's docstring lists every deviation and assumption. The dashboard's Technical tab shows the same list.
 
 ## Reference
 
